@@ -10,6 +10,7 @@ import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.ClassUtils;
 import org.springframework.ws.client.core.WebServiceTemplate;
+import org.springframework.ws.client.WebServiceTransportException;
 
 import translator.Application;
 import translator.web.ws.schema.GetTranslationRequest;
@@ -36,17 +37,33 @@ public class TranslatorEndpointTest {
     marshaller.afterPropertiesSet();
   }
 
-  @Test
+  @Test(expected = RuntimeException.class)
   public void testSendAndReceive() {
     GetTranslationRequest request = new GetTranslationRequest();
     request.setLangFrom("en");
     request.setLangTo("es");
     request.setText("This is a test of translation service");
-    Object response = new WebServiceTemplate(marshaller).marshalSendAndReceive("http://localhost:"
-            + port + "/ws", request);
+    Object response = new WebServiceTemplate(marshaller).
+      marshalSendAndReceive("http://localhost:" + port + "/ws", request);
     assertNotNull(response);
     assertThat(response, instanceOf(GetTranslationResponse.class));
     GetTranslationResponse translation = (GetTranslationResponse) response;
-    assertThat(translation.getTranslation(), is("I don't know how to translate from en to es the text 'This is a test of translation service'"));
+    assertThat(translation.getTranslation(), 
+      is("I don't know how to translate from en to es the text 'This is a test of translation service'"));
+  }
+
+  @Test(expected = WebServiceTransportException.class)
+  public void testUriNotFound(){
+    GetTranslationRequest request = new GetTranslationRequest();
+    request.setLangFrom("en");
+    request.setLangTo("es");
+    request.setText("This is a test of translation service");
+    Object response = new WebServiceTemplate(marshaller).
+      marshalSendAndReceive("http://localhost:" + port + "/wsFAKE", request);
+    assertNotNull(response);
+    assertThat(response, instanceOf(GetTranslationResponse.class));
+    GetTranslationResponse translation = (GetTranslationResponse) response;
+    assertThat(translation.getTranslation(), 
+      is("I don't know how to translate from en to es the text 'This is a test of translation service'"));
   }
 }
